@@ -279,71 +279,148 @@ class _BrandLockup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 58,
-          height: 58,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: _white.withValues(alpha: 0.15)),
-            boxShadow: [
-              BoxShadow(
-                color: _gold.withValues(alpha: 0.08),
-                blurRadius: 20,
-                spreadRadius: 1,
+    final compact = MediaQuery.sizeOf(context).width < 430;
+    final markSize = compact ? 54.0 : 64.0;
+    final wordmarkSize = compact ? 25.0 : 30.0;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: math.max(0, MediaQuery.sizeOf(context).width - 44),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: markSize,
+            height: markSize,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: _white.withValues(alpha: 0.15)),
+              boxShadow: [
+                BoxShadow(
+                  color: _gold.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/mulyaksh_mark.png',
+                fit: BoxFit.cover,
               ),
-            ],
+            ),
           ),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/images/mulyaksh_logo.jpg',
-              fit: BoxFit.cover,
+          SizedBox(width: compact ? 12 : 16),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _MulyakshWordmark(size: wordmarkSize),
+                const SizedBox(height: 7),
+                const Text(
+                  'EMPOWERING VALUE, ENRICHING LIVES',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _gold,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w500,
+                    height: 1,
+                    fontFamilyFallback: [
+                      'Segoe UI',
+                      'Inter',
+                      'Arial',
+                      'sans-serif',
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(width: 16),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'MULYAKSH',
-              style: TextStyle(
-                color: _white,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                height: 1,
-                fontFamilyFallback: [
-                  'Segoe UI',
-                  'Inter',
-                  'Arial',
-                  'sans-serif',
-                ],
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'EMPOWERING VALUE, ENRICHING LIVES',
-              style: TextStyle(
-                color: _gold,
-                fontSize: 9.5,
-                fontWeight: FontWeight.w500,
-                height: 1,
-                fontFamilyFallback: [
-                  'Segoe UI',
-                  'Inter',
-                  'Arial',
-                  'sans-serif',
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
+}
+
+class _MulyakshWordmark extends StatelessWidget {
+  const _MulyakshWordmark({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      foregroundPainter: _WordmarkKAccentPainter(),
+      child: Text(
+        'Mulyaksh',
+        style: TextStyle(
+          color: _white,
+          fontSize: size,
+          fontWeight: FontWeight.w500,
+          height: 0.92,
+          letterSpacing: 0,
+          fontFamilyFallback: const [
+            'Times New Roman',
+            'Georgia',
+            'Cambria',
+            'serif',
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WordmarkKAccentPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final x = size.width * 0.69;
+    final y = size.height * 0.13;
+    final leaf = Path()
+      ..moveTo(x, y + size.height * 0.5)
+      ..cubicTo(
+        x + size.width * 0.02,
+        y + size.height * 0.25,
+        x + size.width * 0.09,
+        y + size.height * 0.12,
+        x + size.width * 0.13,
+        y,
+      )
+      ..cubicTo(
+        x + size.width * 0.09,
+        y + size.height * 0.32,
+        x + size.width * 0.04,
+        y + size.height * 0.52,
+        x,
+        y + size.height * 0.76,
+      )
+      ..close();
+
+    final paint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFE4B665), Color(0xFF9E6A23)],
+      ).createShader(leaf.getBounds());
+
+    canvas.drawPath(leaf, paint);
+
+    final cut = Paint()
+      ..color = _black.withValues(alpha: 0.6)
+      ..strokeWidth = 1.1
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(x + size.width * 0.045, y + size.height * 0.45),
+      Offset(x + size.width * 0.11, y + size.height * 0.1),
+      cut,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _WordmarkKAccentPainter oldDelegate) => false;
 }
 
 class _PhaseBadge extends StatelessWidget {
