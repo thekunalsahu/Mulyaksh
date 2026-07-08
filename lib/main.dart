@@ -25,7 +25,7 @@ class MulyakshApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Mulyaksh | Coming Soon',
+      title: 'Mulyaksh',
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
@@ -320,7 +320,7 @@ class _BrandLockup extends StatelessWidget {
                 _MulyakshWordmark(size: wordmarkSize),
                 const SizedBox(height: 7),
                 const Text(
-                  'EMPOWERING VALUE, ENRICHING LIVES',
+                  'EVERY SCAN, REAL INFORMATION',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -456,7 +456,7 @@ class _PhaseBadge extends StatelessWidget {
               ),
               const SizedBox(width: 9),
               Text(
-                'SMART QR PRODUCT PAGES',
+                'SMART QR PRODUCT',
                 style: TextStyle(
                   color: _muted.withValues(alpha: 0.8),
                   fontSize: 10,
