@@ -2,12 +2,15 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 import hmac
+import hashlib
 import base64
 import binascii
 import os
+import re
 import secrets
 import smtplib
 import sqlite3
+import threading
 import uuid
 import json
 import urllib.error
@@ -29,8 +32,12 @@ if local_env.exists():
             key, value = line.split("=", 1)
             os.environ.setdefault(key.strip(), value.strip())
 DB_PATH = ROOT / "mulyaksh.sqlite3"
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 app = Flask(__name__)
-app.secret_key = os.environ.get("MULYAKSH_SECRET", "local-dev-only-change-before-deploy")
+app.secret_key = os.environ.get("MULYAKSH_SECRET") or (
+    hmac.new(DATABASE_URL.encode(), b"mulyaksh-session-signing-v1", hashlib.sha256).hexdigest()
+    if DATABASE_URL else "local-dev-only-change-before-deploy"
+)
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
@@ -72,7 +79,63 @@ def is_direct_video(value):
     return urlparse(value or "").path.lower().endswith((".mp4", ".webm", ".ogg"))
 
 
+def database_id(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return -1
+
+
+class IndexedRow(dict):
+    """Mapping-style DB row with sqlite-compatible integer indexing."""
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return tuple(self.values())[key]
+        return super().__getitem__(key)
+
+
+class PostgresCursor:
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    def fetchone(self):
+        row = self.cursor.fetchone()
+        return IndexedRow(row) if row is not None else None
+
+    def fetchall(self):
+        return [IndexedRow(row) for row in self.cursor.fetchall()]
+
+
+class PostgresConnection:
+    """Small compatibility layer for the app's existing sqlite-style SQL."""
+
+    def __init__(self, connection):
+        self.connection = connection
+
+    def execute(self, statement, parameters=()):
+        statement = re.sub(r"\?", "%s", statement)
+        return PostgresCursor(self.connection.execute(statement, parameters))
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            if exc_type is None:
+                self.connection.commit()
+            else:
+                self.connection.rollback()
+        finally:
+            self.connection.close()
+
+
 def db():
+    if DATABASE_URL:
+        import psycopg
+        from psycopg.rows import dict_row
+
+        return PostgresConnection(psycopg.connect(DATABASE_URL, row_factory=dict_row))
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -81,42 +144,83 @@ def db():
 
 def init_db():
     with db() as conn:
-        conn.executescript("""
-        CREATE TABLE IF NOT EXISTS clients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            business TEXT NOT NULL,
-            phone TEXT DEFAULT '', email TEXT DEFAULT '',
-            login_username TEXT, password_hash TEXT,
-            created_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            public_id TEXT NOT NULL UNIQUE,
-            hidden_code TEXT UNIQUE,
-            client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-            name TEXT NOT NULL, description TEXT DEFAULT '',
-            batch TEXT DEFAULT '', origin TEXT DEFAULT '',
-            mrp TEXT DEFAULT '', video_url TEXT DEFAULT '', details TEXT DEFAULT '',
-            qr_label TEXT DEFAULT '', qr_price TEXT DEFAULT '', qr_expires_at TEXT DEFAULT '',
-            active INTEGER NOT NULL DEFAULT 1,
-            created_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS scans (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-            scanned_at TEXT NOT NULL,
-            user_agent TEXT DEFAULT '', scan_type TEXT NOT NULL DEFAULT 'public'
-        );
-        CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-        """)
-        product_columns = {row[1] for row in conn.execute("PRAGMA table_info(products)")}
-        client_columns = {row[1] for row in conn.execute("PRAGMA table_info(clients)")}
+        if DATABASE_URL:
+            conn.execute("SELECT pg_advisory_xact_lock(7821042601)")
+            for statement in (
+                """CREATE TABLE IF NOT EXISTS clients (
+                    id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, business TEXT NOT NULL,
+                    phone TEXT DEFAULT '', email TEXT DEFAULT '', login_username TEXT,
+                    password_hash TEXT, created_at TEXT NOT NULL
+                )""",
+                """CREATE TABLE IF NOT EXISTS products (
+                    id BIGSERIAL PRIMARY KEY, public_id TEXT NOT NULL UNIQUE,
+                    hidden_code TEXT UNIQUE, client_id BIGINT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                    name TEXT NOT NULL, description TEXT DEFAULT '', batch TEXT DEFAULT '',
+                    origin TEXT DEFAULT '', mrp TEXT DEFAULT '', video_url TEXT DEFAULT '',
+                    details TEXT DEFAULT '', qr_label TEXT DEFAULT '', qr_price TEXT DEFAULT '',
+                    qr_expires_at TEXT DEFAULT '', active INTEGER NOT NULL DEFAULT 1,
+                    created_at TEXT NOT NULL
+                )""",
+                """CREATE TABLE IF NOT EXISTS scans (
+                    id BIGSERIAL PRIMARY KEY, product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+                    scanned_at TEXT NOT NULL, user_agent TEXT DEFAULT '', scan_type TEXT NOT NULL DEFAULT 'public'
+                )""",
+                "CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+            ):
+                conn.execute(statement)
+            product_columns = {
+                row[0] for row in conn.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='products'"
+                ).fetchall()
+            }
+            client_columns = {
+                row[0] for row in conn.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='clients'"
+                ).fetchall()
+            }
+            scan_columns = {
+                row[0] for row in conn.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='scans'"
+                ).fetchall()
+            }
+        else:
+            conn.executescript("""
+            CREATE TABLE IF NOT EXISTS clients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                business TEXT NOT NULL,
+                phone TEXT DEFAULT '', email TEXT DEFAULT '',
+                login_username TEXT, password_hash TEXT,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS products (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                public_id TEXT NOT NULL UNIQUE,
+                hidden_code TEXT UNIQUE,
+                client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                name TEXT NOT NULL, description TEXT DEFAULT '',
+                batch TEXT DEFAULT '', origin TEXT DEFAULT '',
+                mrp TEXT DEFAULT '', video_url TEXT DEFAULT '', details TEXT DEFAULT '',
+                qr_label TEXT DEFAULT '', qr_price TEXT DEFAULT '', qr_expires_at TEXT DEFAULT '',
+                active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS scans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+                scanned_at TEXT NOT NULL,
+                user_agent TEXT DEFAULT '', scan_type TEXT NOT NULL DEFAULT 'public'
+            );
+            CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            """)
+            product_columns = {row[1] for row in conn.execute("PRAGMA table_info(products)")}
+            client_columns = {row[1] for row in conn.execute("PRAGMA table_info(clients)")}
+            scan_columns = {row[1] for row in conn.execute("PRAGMA table_info(scans)")}
         if "login_username" not in client_columns:
             conn.execute("ALTER TABLE clients ADD COLUMN login_username TEXT")
         if "password_hash" not in client_columns:
             conn.execute("ALTER TABLE clients ADD COLUMN password_hash TEXT")
-        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS clients_login_username_unique ON clients(login_username COLLATE NOCASE) WHERE login_username IS NOT NULL")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS clients_login_username_unique ON clients(LOWER(login_username)) WHERE login_username IS NOT NULL")
         if "image_url" not in product_columns:
             conn.execute("ALTER TABLE products ADD COLUMN image_url TEXT DEFAULT ''")
         if "hidden_code" not in product_columns:
@@ -124,19 +228,30 @@ def init_db():
         for column in ("qr_label", "qr_price", "qr_expires_at"):
             if column not in product_columns:
                 conn.execute(f"ALTER TABLE products ADD COLUMN {column} TEXT DEFAULT ''")
-        scan_columns = {row[1] for row in conn.execute("PRAGMA table_info(scans)")}
         if "scan_type" not in scan_columns:
             conn.execute("ALTER TABLE scans ADD COLUMN scan_type TEXT NOT NULL DEFAULT 'public'")
         for row in conn.execute("SELECT id FROM products WHERE hidden_code IS NULL OR hidden_code='' ").fetchall():
             conn.execute("UPDATE products SET hidden_code=? WHERE id=?", (uuid.uuid4().hex[:16], row[0]))
         if not conn.execute("SELECT 1 FROM app_meta WHERE key='demo_seeded'").fetchone():
             if conn.execute("SELECT COUNT(*) FROM clients").fetchone()[0] == 0:
-                cur = conn.execute("INSERT INTO clients(name,business,phone,email,created_at) VALUES(?,?,?,?,?)", ("Mulyaksh Demo", "Mulyaksh Sample Brand", "", "", datetime.now(timezone.utc).isoformat()))
-                conn.execute("INSERT INTO products(public_id,hidden_code,client_id,name,description,batch,origin,mrp,video_url,details,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (uuid.uuid4().hex[:12], uuid.uuid4().hex[:16], cur.lastrowid, "Mulyaksh Sample Product", "A sample verified product. Replace this entry from the developer dashboard with your own product details.", "DEMO-001", "India", "299", "", "Every scan verifies authenticity. Contact the brand for care, warranty and product support.", datetime.now(timezone.utc).isoformat()))
+                cur = conn.execute("INSERT INTO clients(name,business,phone,email,created_at) VALUES(?,?,?,?,?) RETURNING id", ("Mulyaksh Demo", "Mulyaksh Sample Brand", "", "", datetime.now(timezone.utc).isoformat()))
+                client_id = cur.fetchone()[0]
+                conn.execute("INSERT INTO products(public_id,hidden_code,client_id,name,description,batch,origin,mrp,video_url,details,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)", (uuid.uuid4().hex[:12], uuid.uuid4().hex[:16], client_id, "Mulyaksh Sample Product", "A sample verified product. Replace this entry from the developer dashboard with your own product details.", "DEMO-001", "India", "299", "", "Every scan verifies authenticity. Contact the brand for care, warranty and product support.", datetime.now(timezone.utc).isoformat()))
             conn.execute("INSERT INTO app_meta(key,value) VALUES('demo_seeded','1')")
 
 
-init_db()
+_database_initialized = False
+_database_init_lock = threading.Lock()
+
+
+@app.before_request
+def ensure_database_initialized():
+    global _database_initialized
+    if not _database_initialized:
+        with _database_init_lock:
+            if not _database_initialized:
+                init_db()
+                _database_initialized = True
 
 
 def csrf_token():
@@ -335,7 +450,7 @@ def client_login():
             abort(400)
         username = request.form.get("username", "").strip()
         with db() as conn:
-            client = conn.execute("SELECT id,password_hash FROM clients WHERE login_username=? COLLATE NOCASE", (username,)).fetchone()
+            client = conn.execute("SELECT id,password_hash FROM clients WHERE LOWER(login_username)=LOWER(?)", (username,)).fetchone()
         if client and client["password_hash"] and check_password_hash(client["password_hash"], request.form.get("password", "")):
             session.clear()
             session["client_id"] = client["id"]
@@ -485,17 +600,17 @@ def admin_dashboard():
                 login_password = request.form.get("login_password", "")
                 if not name or not business or not login_username or len(login_password) < 10:
                     flash("Client details, a login ID, and a password of at least 10 characters are required.", "error")
-                elif conn.execute("SELECT 1 FROM clients WHERE login_username=? COLLATE NOCASE", (login_username,)).fetchone():
+                elif conn.execute("SELECT 1 FROM clients WHERE LOWER(login_username)=LOWER(?)", (login_username,)).fetchone():
                     flash("That client login ID is already in use.", "error")
                 else:
                     conn.execute("INSERT INTO clients(name,business,phone,email,login_username,password_hash,created_at) VALUES(?,?,?,?,?,?,?)", (name[:100], business[:120], request.form.get("phone", "")[:40], request.form.get("email", "")[:120], login_username[:80], generate_password_hash(login_password), datetime.now(timezone.utc).isoformat()))
                     flash("Client added with login ID " + login_username + ". Share the password you entered with that client securely.", "success")
             elif action == "update_client":
-                client_id = request.form.get("client_id")
+                client_id = database_id(request.form.get("client_id"))
                 name, business = request.form.get("name", "").strip(), request.form.get("business", "").strip()
                 login_username = request.form.get("login_username", "").strip()
                 login_password = request.form.get("login_password", "")
-                duplicate = conn.execute("SELECT 1 FROM clients WHERE login_username=? COLLATE NOCASE AND id<>?", (login_username, client_id)).fetchone() if login_username else None
+                duplicate = conn.execute("SELECT 1 FROM clients WHERE LOWER(login_username)=LOWER(?) AND id<>?", (login_username, client_id)).fetchone() if login_username else None
                 current = conn.execute("SELECT password_hash FROM clients WHERE id=?", (client_id,)).fetchone()
                 if not name or not business:
                     flash("Client and business name are required.", "error")
@@ -510,11 +625,11 @@ def admin_dashboard():
                     conn.execute("UPDATE clients SET name=?,business=?,phone=?,email=?,login_username=?,password_hash=? WHERE id=?", (name[:100], business[:120], request.form.get("phone", "")[:40], request.form.get("email", "")[:120], login_username[:80] or None, password_hash if login_username else None, client_id))
                     flash("Client details and login updated.", "success")
             elif action == "delete_client":
-                conn.execute("DELETE FROM clients WHERE id=?", (request.form.get("client_id"),))
+                conn.execute("DELETE FROM clients WHERE id=?", (database_id(request.form.get("client_id")),))
                 flash("Client and their products removed.", "success")
             elif action == "add_product":
                 name = request.form.get("name", "").strip()
-                client_id = request.form.get("client_id", "")
+                client_id = database_id(request.form.get("client_id"))
                 if name and conn.execute("SELECT 1 FROM clients WHERE id=?", (client_id,)).fetchone():
                     public_id = uuid.uuid4().hex[:12]
                     try:
@@ -532,10 +647,10 @@ def admin_dashboard():
                 except ValueError as error:
                     flash(str(error), "error")
                     return redirect(url_for("admin_dashboard"))
-                conn.execute("UPDATE products SET name=?,description=?,batch=?,origin=?,mrp=?,video_url=?,image_url=?,details=?,active=?,qr_label=?,qr_price=?,qr_expires_at=? WHERE id=?", (request.form.get("name", "").strip()[:120], request.form.get("description", "")[:1000], request.form.get("batch", "")[:100], request.form.get("origin", "")[:120], request.form.get("mrp", "")[:40], normalize_video_url(request.form.get("video_url", "")), safe_image_url(request.form.get("image_url", "")), request.form.get("details", "")[:1500], 1 if request.form.get("active") else 0, request.form.get("qr_label", "")[:80], request.form.get("qr_price", "")[:30], expires, request.form.get("product_id")))
+                conn.execute("UPDATE products SET name=?,description=?,batch=?,origin=?,mrp=?,video_url=?,image_url=?,details=?,active=?,qr_label=?,qr_price=?,qr_expires_at=? WHERE id=?", (request.form.get("name", "").strip()[:120], request.form.get("description", "")[:1000], request.form.get("batch", "")[:100], request.form.get("origin", "")[:120], request.form.get("mrp", "")[:40], normalize_video_url(request.form.get("video_url", "")), safe_image_url(request.form.get("image_url", "")), request.form.get("details", "")[:1500], 1 if request.form.get("active") else 0, request.form.get("qr_label", "")[:80], request.form.get("qr_price", "")[:30], expires, database_id(request.form.get("product_id"))))
                 flash("Product updated.", "success")
             elif action == "delete_product":
-                conn.execute("DELETE FROM products WHERE id=?", (request.form.get("product_id"),))
+                conn.execute("DELETE FROM products WHERE id=?", (database_id(request.form.get("product_id")),))
                 flash("Product removed.", "success")
         return redirect(url_for("admin_dashboard"))
     with db() as conn:
@@ -552,4 +667,5 @@ def missing(_error):
 
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG", "0") == "1")
+
 
