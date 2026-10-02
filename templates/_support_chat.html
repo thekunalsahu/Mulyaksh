@@ -1,26 +1,31 @@
 <section class="support-chat" aria-label="Mulyaksh support assistant">
   <button class="chat-launch" type="button" aria-label="Open Mulyaksh support chat" aria-expanded="false" aria-controls="support-chat-panel">
-    <span class="robot-halo" aria-hidden="true"></span>
-    <svg class="robot-avatar" viewBox="0 0 64 64" aria-hidden="true">
-      <path class="robot-antenna" d="M32 8v8"/><circle class="robot-sensor" cx="32" cy="6" r="3"/>
-      <rect class="robot-head" x="10" y="17" width="44" height="36" rx="15"/>
-      <path class="robot-ear" d="M10 29H6v12h4m44-12h4v12h-4"/>
-      <rect class="robot-screen" x="17" y="24" width="30" height="19" rx="8"/>
-      <ellipse class="robot-eye" cx="25" cy="33" rx="2.6" ry="3.2"/><ellipse class="robot-eye" cx="39" cy="33" rx="2.6" ry="3.2"/>
-      <path class="robot-smile" d="M27 38q5 4 10 0"/><path class="robot-chin" d="M25 49h14"/>
+    <span class="guide-halo" aria-hidden="true"></span>
+    <svg class="guide-avatar" viewBox="0 0 64 64" aria-hidden="true">
+      <circle class="guide-backdrop" cx="32" cy="32" r="30"/>
+      <path class="guide-hair-back" d="M10 63V31C10 15 20 6 33 6s23 10 23 25v32H45V34H19v29z"/>
+      <path class="guide-neck" d="M27 41h10v9H27z"/>
+      <path class="guide-jacket" d="M8 64c1-11 8-16 19-18l5 7 5-7c12 2 19 7 20 18z"/>
+      <path class="guide-blouse" d="m27 46 5 7 5-7 4 18H23z"/>
+      <ellipse class="guide-face" cx="32" cy="29" rx="15" ry="18"/>
+      <path class="guide-hair" d="M17 29c-1-14 5-22 16-22 12 0 18 9 16 22l-4-7c-7 1-14-1-20-6-1 5-4 9-8 13z"/>
+      <path class="guide-brow" d="m23 27 5-1m8 0 5 1"/>
+      <ellipse class="guide-eye" cx="26" cy="31" rx="1.5" ry="2.2"/><ellipse class="guide-eye" cx="38" cy="31" rx="1.5" ry="2.2"/>
+      <path class="guide-smile" d="M28 38q4 3 8 0"/>
+      <path class="guide-lapel" d="m25 47 7 9 7-9m-7 9v8"/>
     </svg>
-    <i class="robot-status" aria-hidden="true"></i>
-    <span class="robot-tooltip">Need a hand?</span>
+    <i class="guide-status" aria-hidden="true"></i>
+    <span class="guide-tooltip">Need a hand?</span>
   </button>
   <div class="chat-panel" id="support-chat-panel" hidden>
     <header class="chat-header">
-      <div class="chat-brand-avatar" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="10" y="17" width="44" height="36" rx="15"/><rect x="17" y="24" width="30" height="19" rx="8"/><ellipse cx="25" cy="33" rx="2.6" ry="3.2"/><ellipse cx="39" cy="33" rx="2.6" ry="3.2"/><path d="M27 38q5 4 10 0"/></svg></div>
+      <div class="chat-brand-avatar" aria-hidden="true"><svg viewBox="0 0 64 64"><circle class="guide-backdrop" cx="32" cy="32" r="30"/><path class="guide-hair-back" d="M10 63V31C10 15 20 6 33 6s23 10 23 25v32H45V34H19v29z"/><path class="guide-neck" d="M27 41h10v9H27z"/><path class="guide-jacket" d="M8 64c1-11 8-16 19-18l5 7 5-7c12 2 19 7 20 18z"/><path class="guide-blouse" d="m27 46 5 7 5-7 4 18H23z"/><ellipse class="guide-face" cx="32" cy="29" rx="15" ry="18"/><path class="guide-hair" d="M17 29c-1-14 5-22 16-22 12 0 18 9 16 22l-4-7c-7 1-14-1-20-6-1 5-4 9-8 13z"/><path class="guide-brow" d="m23 27 5-1m8 0 5 1"/><ellipse class="guide-eye" cx="26" cy="31" rx="1.5" ry="2.2"/><ellipse class="guide-eye" cx="38" cy="31" rx="1.5" ry="2.2"/><path class="guide-smile" d="M28 38q4 3 8 0"/><path class="guide-lapel" d="m25 47 7 9 7-9m-7 9v8"/></svg></div>
       <div class="chat-heading"><b>Mulyaksh Assistant</b><small><i></i> Here to help</small></div>
       <button class="chat-close" type="button" aria-label="Close support chat">×</button>
     </header>
     <div class="chat-messages" aria-live="polite">
-      <div class="chat-welcome"><span class="welcome-spark">✦</span><b>Namaste! 👋</b><p>Ask about a product, QR scan or your client portal. You can also send a product photo.</p></div>
-      <div class="chat-suggestions"><button type="button">Help me read this label</button><button type="button">How does QR verification work?</button></div>
+      <div class="chat-welcome"><span class="welcome-spark">✦</span><b>Namaste! 👋</b><p>Ask anything about Mulyaksh, product pages or QR scans. Photos are optional.</p></div>
+      <div class="chat-suggestions"><button type="button">What can Mulyaksh do?</button><button type="button">How does QR verification work?</button></div>
     </div>
     <div class="chat-composer">
       <div class="chat-image-preview" hidden><img alt="Selected product photo preview"><span class="image-name"></span><button type="button" class="remove-image" aria-label="Remove attached photo">×</button></div>

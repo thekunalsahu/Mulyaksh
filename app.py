@@ -422,10 +422,13 @@ def support_chat():
             ],
         }
     payload = {
-        "model": "qwen/qwen3.8-27b" if image_url else os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
-        "messages": [{"role": "system", "content": "You are Mulyaksh's friendly customer and client support assistant. Answer concisely in the language the user uses (English or Hinglish). Mulyaksh provides product pages, public product QR codes, hidden authenticity checks, scan activity, client and developer portals, and a coming-soon wallet. If a photo is attached, describe visible packaging and readable details, and answer questions about what can actually be seen. Do not infer hidden product facts, claim to verify authenticity from a photo, or claim access to client/account records. Direct account/product changes to the assigned brand or Mulyaksh developer; direct new-business enquiries to the contact form. Never ask for passwords, API keys, OTPs, or payment credentials."}, *history],
-        "temperature": 0.4,
-        "max_tokens": 300,
+        # GPT OSS 20B is available on Groq's production developer plan. The old
+        # Llama 3.3 model is now listed as Enterprise-only and can reject free keys.
+        # Only select the multimodal model when a photo was actually attached.
+        "model": "qwen/qwen3.8-27b" if image_url else "openai/gpt-oss-20b",
+        "reasoning_effort": "low",
+        "messages": [{"role": "system", "content": "You are Mulyaksh's friendly customer and client support assistant. Answer the user's actual text question directly, even when no photo is attached. Photos are optional: never demand or insist on an image. Ask for one only when the user specifically wants you to inspect something visual that they have not described. Answer concisely in the language the user uses (English or Hinglish). Mulyaksh provides product pages, public product QR codes, hidden authenticity checks, scan activity, client and developer portals, and a coming-soon wallet. If a photo is attached, describe visible packaging and readable details, and answer questions about what can actually be seen. Do not infer hidden product facts, claim to verify authenticity from a photo, or claim access to client/account records. Direct account/product changes to the assigned brand or Mulyaksh developer; direct new-business enquiries to the contact form. Never ask for passwords, API keys, OTPs, or payment credentials."}, *history],
+        "max_completion_tokens": 300,
     }
     req = urllib.request.Request("https://api.groq.com/openai/v1/chat/completions", data=json.dumps(payload).encode(), headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, method="POST")
     try:
@@ -434,7 +437,15 @@ def support_chat():
         reply = result["choices"][0]["message"]["content"].strip()
         return jsonify(ok=True, message=reply[:2500])
     except urllib.error.HTTPError as error:
-        app.logger.warning("Groq support chat returned HTTP %s", error.code)
+        # Keep provider diagnostics useful without logging prompts, photos, or secrets.
+        try:
+            error_body = json.loads(error.read(4096).decode("utf-8", errors="replace"))
+            provider_error = error_body.get("error", {})
+            provider_code = str(provider_error.get("code", "unknown"))[:80] if isinstance(provider_error, dict) else "unknown"
+            provider_type = str(provider_error.get("type", "unknown"))[:80] if isinstance(provider_error, dict) else "unknown"
+        except (ValueError, AttributeError):
+            provider_code, provider_type = "unreadable", "unknown"
+        app.logger.warning("Groq support chat returned HTTP %s (code=%s, type=%s)", error.code, provider_code, provider_type)
         return jsonify(ok=False, message="I couldn't reach support chat just now. Please try again or use the contact form."), 502
     except urllib.error.URLError as error:
         app.logger.warning("Groq support chat network error: %s", str(error.reason)[:120])
@@ -575,7 +586,7 @@ def admin_login():
     if request.method == "POST":
         if not csrf_valid():
             abort(400)
-        username = os.environ.get("DEVELOPER_USERNAME", "")
+        username = os.environ.get("DEVELOPER_USERNAME", "MULYAKSH01").strip()
         password = os.environ.get("DEVELOPER_PASSWORD", "")
         if not username or not password:
             flash("Developer login is not configured. Set DEVELOPER_USERNAME and DEVELOPER_PASSWORD first.", "error")
