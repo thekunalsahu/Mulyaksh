@@ -25,34 +25,6 @@
 .feature.visible .chat-demo{animation:demo-enter .7s cubic-bezier(.2,.75,.25,1) both}.feature.visible .chat-bubble{transform-origin:left bottom;animation:bubble-pop .36s cubic-bezier(.2,.8,.2,1) .35s both}.feature.visible .coin{animation:coin-lift 2.8s ease-in-out .25s infinite}.feature.visible .chart-bars i{transform-origin:bottom;animation:chart-rise .65s cubic-bezier(.2,.8,.2,1) both}.feature.visible .chart-bars i:nth-child(2){animation-delay:.06s}.feature.visible .chart-bars i:nth-child(3){animation-delay:.12s}.feature.visible .chart-bars i:nth-child(4){animation-delay:.18s}.feature.visible .chart-bars i:nth-child(5){animation-delay:.24s}.feature.visible .chart-bars i:nth-child(6){animation-delay:.3s}.feature.visible .chart-bars i:nth-child(7){animation-delay:.36s}.flow-step.visible .step-symbol{animation:step-pop .5s cubic-bezier(.2,.8,.2,1) both}.flow-step.visible:nth-of-type(2) .step-symbol{animation-delay:.08s}.flow-step.visible:nth-of-type(3) .step-symbol{animation-delay:.16s}@keyframes demo-enter{from{opacity:0;transform:translateY(13px) rotate(-3deg)}to{opacity:1;transform:translateY(0) rotate(-3deg)}}@keyframes bubble-pop{from{opacity:.25;transform:scale(.92) translateY(5px)}to{opacity:1;transform:scale(1) translateY(0)}}@keyframes coin-lift{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(7deg)}}@keyframes chart-rise{from{transform:scaleY(.12);opacity:.4}to{transform:scaleY(1);opacity:1}}@keyframes step-pop{0%{transform:scale(.75);opacity:.55}65%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
 @media(prefers-reduced-motion:reduce){.feature.visible .chat-demo,.feature.visible .chat-bubble,.feature.visible .coin,.feature.visible .chart-bars i,.flow-step.visible .step-symbol{animation:none!important}}
 
-/* Warm, understated motion for the illustrated human brand guide. */
-.reveal{transition:opacity .9s cubic-bezier(.2,.75,.25,1),transform .9s cubic-bezier(.2,.75,.25,1)}
-.hero-mascot .human-guide{width:94px;height:122px;overflow:visible;filter:drop-shadow(0 8px 14px #020a1440)}
-.human-guide-float{transform-box:fill-box;transform-origin:center bottom;animation:human-guide-float 3.4s ease-in-out infinite}
-.human-guide-shadow{fill:#020a1440;transform-box:fill-box;transform-origin:center;animation:human-guide-shadow 3.4s ease-in-out infinite}
-.human-hair-back,.human-fringe,.guide-hair-back,.guide-hair{fill:#18263a;stroke:#d7af61;stroke-width:.8;stroke-linejoin:round}
-.human-face,.guide-face{fill:#e9bea0;stroke:#b37d5d;stroke-width:.6}
-.human-neck,.guide-neck{fill:#dba987}
-.human-torso,.human-sleeve,.guide-jacket{fill:#1c3857;stroke:#d7af61;stroke-width:1.2;stroke-linejoin:round}
-.human-blouse,.guide-blouse{fill:#f4efe3}
-.human-lapel,.guide-lapel{fill:none;stroke:#e8c573;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
-.human-brow,.guide-brow{fill:none;stroke:#33251f;stroke-width:1;stroke-linecap:round}
-.human-eye,.guide-eye{fill:#30231f;transform-box:fill-box;transform-origin:center;animation:human-guide-blink 5.4s ease-in-out infinite}
-.human-smile,.guide-smile{fill:none;stroke:#985f56;stroke-width:1.3;stroke-linecap:round}
-.human-hand{fill:#e9bea0;stroke:#b37d5d;stroke-width:.7;stroke-linejoin:round}
-.human-pin{fill:#e8c573;stroke:#fff0be;stroke-width:.5}
-.human-wave-arm,.human-wave-hand{transform-box:view-box;transform-origin:67px 64px;animation:human-guide-wave 2.8s ease-in-out infinite}
-.human-wave-hand{transform-origin:85px 48px;animation-delay:.1s}
-.scan-mascot{margin-top:22px}
-.scan-mascot .human-guide{width:86px;height:112px;overflow:visible;filter:drop-shadow(0 7px 12px #020a1433)}
-.scan-mascot.visible .human-guide-float{animation:human-guide-float 3.6s ease-in-out infinite}
-@keyframes human-guide-float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-1deg)}}
-@keyframes human-guide-shadow{50%{transform:scaleX(.84);opacity:.55}}
-@keyframes human-guide-blink{0%,44%,48%,100%{transform:scaleY(1)}45%,47%{transform:scaleY(.12)}}
-@keyframes human-guide-wave{0%,100%{transform:rotate(0)}50%{transform:rotate(-6deg)}}
-@media(max-width:650px){.hero-mascot .human-guide{width:82px;height:108px}.scan-mascot .human-guide{width:76px;height:98px}}
-@media(prefers-reduced-motion:reduce){.human-guide-float,.human-guide-shadow,.human-eye,.guide-eye,.human-wave-arm,.human-wave-hand{animation:none!important}.reveal{transition:none!important}}
-
 /* Compact footer links with an Instagram style wordmark. */
 .footer-right{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;column-gap:12px;row-gap:8px;letter-spacing:.09em}
 .footer-right .footer-copy{color:var(--muted);padding:0}
