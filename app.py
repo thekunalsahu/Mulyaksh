@@ -452,7 +452,7 @@ def support_chat():
         except (ValueError, AttributeError):
             provider_code, provider_type = "unreadable", "unknown"
         app.logger.warning("Groq support chat returned HTTP %s (code=%s, type=%s)", error.code, provider_code, provider_type)
-        return jsonify(ok=False, message="I couldn't reach support chat just now. Please try again or use the contact form."), 502
+        return jsonify(ok=False, message="I couldn't reach support chat just now. Please try again or use the contact form.", provider_error={"status": error.code, "code": provider_code, "type": provider_type}), 502
     except urllib.error.URLError as error:
         app.logger.warning("Groq support chat network error: %s", str(error.reason)[:120])
         return jsonify(ok=False, message="I couldn't reach support chat just now. Please try again or use the contact form."), 502
