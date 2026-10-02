@@ -42,7 +42,7 @@ app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=os.environ.get("PUBLIC_BASE_URL", "").startswith("https://"),
+    SESSION_COOKIE_SECURE=os.environ.get("PUBLIC_BASE_URL", "").startswith("https://") or bool(DATABASE_URL),
 )
 
 
@@ -667,5 +667,6 @@ def missing(_error):
 
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG", "0") == "1")
+
 
 
