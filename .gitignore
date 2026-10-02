@@ -5,3 +5,5 @@ leads.jsonl
 mulyaksh.sqlite3
 
 .developer-password.txt
+.vercel
+.env*

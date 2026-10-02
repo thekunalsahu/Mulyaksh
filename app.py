@@ -436,7 +436,7 @@ def support_chat():
         "messages": [{"role": "system", "content": "You are Mulyaksh's friendly customer and client support assistant. Answer the user's actual text question directly, even when no photo is attached. Photos are optional: never demand or insist on an image. Ask for one only when the user specifically wants you to inspect something visual that they have not described. Answer concisely in the language the user uses (English or Hinglish). Mulyaksh provides product pages, public product QR codes, hidden authenticity checks, scan activity, client and developer portals, and a coming-soon wallet. If a photo is attached, describe visible packaging and readable details, and answer questions about what can actually be seen. Do not infer hidden product facts, claim to verify authenticity from a photo, or claim access to client/account records. Direct account/product changes to the assigned brand or Mulyaksh developer; direct new-business enquiries to the contact form. Never ask for passwords, API keys, OTPs, or payment credentials."}, *history],
         "max_completion_tokens": 300,
     }
-    req = urllib.request.Request("https://api.groq.com/openai/v1/chat/completions", data=json.dumps(payload).encode(), headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, method="POST")
+    req = urllib.request.Request("https://api.groq.com/openai/v1/chat/completions", data=json.dumps(payload).encode(), headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json", "User-Agent": "MulyakshSupport/1.0"}, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=20) as response:
             result = json.loads(response.read().decode("utf-8"))
