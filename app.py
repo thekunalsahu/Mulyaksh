@@ -165,6 +165,10 @@ def init_db():
                     id BIGSERIAL PRIMARY KEY, product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
                     scanned_at TEXT NOT NULL, user_agent TEXT DEFAULT '', scan_type TEXT NOT NULL DEFAULT 'public'
                 )""",
+                """CREATE TABLE IF NOT EXISTS contact_requests (
+                    id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, phone TEXT NOT NULL,
+                    business TEXT DEFAULT '', created_at TEXT NOT NULL
+                )""",
                 "CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
             ):
                 conn.execute(statement)
@@ -210,6 +214,11 @@ def init_db():
                 product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
                 scanned_at TEXT NOT NULL,
                 user_agent TEXT DEFAULT '', scan_type TEXT NOT NULL DEFAULT 'public'
+            );
+            CREATE TABLE IF NOT EXISTS contact_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL, phone TEXT NOT NULL, business TEXT DEFAULT '',
+                created_at TEXT NOT NULL
             );
             CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             """)
@@ -329,17 +338,19 @@ def contact():
     business = str(data.get("business", "")).strip()
     if not name or not phone:
         return jsonify(ok=False, message="Please add your name and phone number."), 400
-    import json
     lead = {"name": name[:100], "phone": phone[:40], "business": business[:120], "created_at": datetime.now(timezone.utc).isoformat()}
-    with (ROOT / "leads.jsonl").open("a", encoding="utf-8") as f:
-        f.write(json.dumps(lead, ensure_ascii=False) + "\n")
+    with db() as conn:
+        conn.execute(
+            "INSERT INTO contact_requests(name,phone,business,created_at) VALUES(?,?,?,?)",
+            (lead["name"], lead["phone"], lead["business"], lead["created_at"]),
+        )
     smtp_host = os.environ.get("SMTP_HOST", "").strip()
     recipient = os.environ.get("CONTACT_EMAIL", "").strip()
     smtp_user = os.environ.get("SMTP_USER", "").strip()
     smtp_password = os.environ.get("SMTP_PASSWORD", "")
     sender = os.environ.get("SMTP_FROM", smtp_user).strip()
     if not all((smtp_host, recipient, smtp_user, smtp_password, sender)):
-        return jsonify(ok=False, message="Your enquiry was saved locally, but email delivery is not configured yet. Please try again later."), 503
+        return jsonify(ok=False, message="Your enquiry was saved, but email delivery is not configured yet."), 503
     message = EmailMessage()
     safe_name = " ".join(name.splitlines())[:100]
     message["Subject"] = f"Mulyaksh website enquiry from {safe_name}"
@@ -359,7 +370,7 @@ def contact():
                 smtp.send_message(message)
     except (OSError, smtplib.SMTPException, ValueError):
         app.logger.exception("Unable to deliver Mulyaksh contact email")
-        return jsonify(ok=False, message="Your enquiry was saved locally, but email could not be delivered. Please try again later."), 503
+        return jsonify(ok=False, message="Your enquiry was saved, but email could not be delivered."), 503
     return jsonify(ok=True, message="Thanks — your enquiry has been emailed to the Mulyaksh team.")
 
 
@@ -667,6 +678,7 @@ def missing(_error):
 
 if __name__ == "__main__":
     app.run(debug=os.environ.get("FLASK_DEBUG", "0") == "1")
+
 
 
 
