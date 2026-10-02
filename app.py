@@ -392,7 +392,13 @@ def support_chat():
             history.append({"role": item["role"], "content": content})
     if not history or history[-1]["role"] != "user":
         return jsonify(ok=False, message="Type a message to start the chat."), 400
-    image_data = str(data.get("image_data", ""))
+    raw_image_data = data.get("image_data")
+    if raw_image_data is None:
+        image_data = ""
+    elif isinstance(raw_image_data, str):
+        image_data = raw_image_data
+    else:
+        return jsonify(ok=False, message="Please attach a valid JPG, PNG, or WebP image."), 400
     image_url = None
     if image_data:
         try:
