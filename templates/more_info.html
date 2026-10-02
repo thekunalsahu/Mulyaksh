@@ -1,0 +1,34 @@
+{% extends "portal_base.html" %}
+{% block title %}About Mulyaksh{% endblock %}
+{% block content %}
+<section class="story-page">
+  <div class="story-atmosphere" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="story-hero">
+    <div class="eyebrow"><span class="eyebrow-line"></span> ABOUT MULYAKSH</div>
+    <span class="story-kicker">THE TEAM · 2026</span>
+    <h1>About<br><em>Mulyaksh.</em></h1>
+    <p>Product pages, authentication and customer tools for brands.</p>
+    <a class="story-scroll" href="#founders"><span>MEET THE TEAM</span><i>↓</i></a>
+  </div>
+  <div class="founder-stage" id="founders">
+    <article class="founder-card founder-primary reveal">
+      <div class="founder-photo-wrap initials-portrait" role="img" aria-label="Rajeev Suryawanshi portrait pending"><div class="portrait-initials"><span>RS</span></div><span class="photo-index">01 / FOUNDER</span><span class="photo-corner"></span></div>
+      <div class="founder-copy"><span class="founder-role">FOUNDER · MULYAKSH</span><h2>Rajeev Suryawanshi</h2><p class="founder-quote">“Product information should be easy to check and clear to understand.”</p><p class="founder-bio">I’m building Mulyaksh to give brands a direct way to share product details and help customers verify what they buy. One product, one clear page.</p><span class="cofounder-note">Founder portrait can be added when available.</span></div>
+    </article>
+    <article class="founder-card founder-secondary reveal">
+      <div class="founder-photo-wrap"><img src="{{ url_for('static', filename='images/founder-portrait.jpg') }}" alt="Kunal Sahu, co-founder of Mulyaksh" class="founder-photo"><span class="photo-index">02 / CO-FOUNDER</span><span class="photo-corner"></span></div>
+      <div class="founder-copy"><span class="founder-role">CO-FOUNDER · MULYAKSH</span><h2>Kunal Sahu</h2><p class="founder-quote">“A scan should take people straight to the details they came for.”</p><p class="founder-bio">Kunal helps shape the product experience, from QR verification to the brand page customers see after a scan.</p></div>
+    </article>
+  </div>
+  <section class="founder-letter reveal"><div class="letter-stamp"><span>म</span><i>✦</i></div>
+    <div class="letter-copy"><span class="founder-role">A NOTE FROM THE FOUNDER</span><h2>Welcome to Mulyaksh.</h2>
+      <p>Whether you make products, sell them or choose them, this platform is for you. We’re bringing product details, video and authenticity checks into a single scan experience.</p>
+      <p>We’re at the beginning of this work. We’ll keep improving with feedback from the brands and customers who use Mulyaksh. Thank you for being part of it.</p>
+      <div class="letter-signoff"><span>Regards,</span><b>Rajeev Suryawanshi &amp; Kunal Sahu</b><small>Founder &amp; Co-founder, Mulyaksh</small></div>
+    </div>
+    <aside class="letter-aside"><span>PLATFORM</span><b>Details.<br>Verification.<br>Customer tools.</b><i>PRODUCT QR → PRODUCT PAGE</i><div class="aside-orbit"></div></aside>
+  </section>
+  <section class="story-details reveal"><div><span class="founder-role">WHAT THE PLATFORM INCLUDES</span><h2>Tools for each product.</h2></div><div class="story-detail-grid"><article><span>01</span><b>Product page</b><p>Batch, origin, description, images and brand video.</p></article><article><span>02</span><b>QR verification</b><p>Public product link plus a separate single-use authenticity code.</p></article><article><span>03</span><b>Client insights</b><p>Product catalogue and scan activity for each client account.</p></article></div></section>
+  <div class="story-end"><span>ABOUT MULYAKSH</span><a href="/">Explore the site <b>↗</b></a></div>
+</section>
+{% endblock %}

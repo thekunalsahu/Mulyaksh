@@ -1,0 +1,13 @@
+const root=document.documentElement;
+const themeButton=document.querySelector('.theme-toggle');
+const saved=localStorage.getItem('mulyaksh-theme');
+if(saved)root.dataset.theme=saved;
+themeButton?.addEventListener('click',()=>{root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';localStorage.setItem('mulyaksh-theme',root.dataset.theme)});
+const menuButton=document.querySelector('.menu-toggle');
+const mainNav=document.querySelector('.nav-wrap nav');
+menuButton?.addEventListener('click',()=>{const open=mainNav?.classList.toggle('open');menuButton.setAttribute('aria-expanded',String(Boolean(open)))});
+mainNav?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mainNav.classList.remove('open');menuButton?.setAttribute('aria-expanded','false')}));
+const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('visible');observer.unobserve(entry.target)}}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+const form=document.querySelector('#contact-form');
+form?.addEventListener('submit',async e=>{e.preventDefault();const status=form.querySelector('.form-status'),button=form.querySelector('button[type="submit"]');button.disabled=true;status.className='form-status';status.textContent='Sending your enquiry…';try{const response=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(form)))});const result=await response.json();if(!response.ok)throw new Error(result.message||'Could not deliver your enquiry.');status.classList.add('success');status.textContent=result.message;form.reset()}catch(err){status.classList.add('error');status.textContent=err.message||'Could not send right now. Please try again.'}finally{button.disabled=false}});
