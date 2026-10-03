@@ -86,3 +86,7 @@ html[data-theme="light"] .story-page .founder-role,html[data-theme="light"] .sto
 .footer-right .instagram-link{gap:3px!important;margin:0!important;padding:0!important}
 .footer-right .instagram-link svg{margin:0!important}
 .footer-right .instagram-wordmark{margin:0!important;padding:0!important}
+
+/* Founder portraits: frame each supplied photo around the subject. */
+.founder-photo-rajeev .founder-photo{object-position:56% 27%}
+.founder-photo-kunal .founder-photo{object-position:67% 29%}
